@@ -4,7 +4,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.*;
 import android.util.Log;
-import java.lang.Process;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -18,12 +17,12 @@ public final class LocalInferenceService extends Service {
     private Messenger endpoint;
     private final class Job implements Runnable,TextBackend.Control,IBinder.DeathRecipient {
         final Messenger callback;final int uid;final String input;final boolean summary,recall;final long deadline;
-        volatile String cancellation;volatile Process process;volatile Thread thread;
+        volatile String cancellation;volatile String requestId;volatile Thread thread;
         Job(Message m){callback=m.replyTo;uid=m.sendingUid;Bundle b=m.getData();input=b.getString("input","");summary=b.getBoolean("summary");recall="recall".equals(b.getString("task"));deadline=Math.min(b.getLong("deadline",0),SystemClock.elapsedRealtime()+(recall?8000:(summary?75000:45000)));}
         public boolean cancelled(){return cancellation!=null;}
         public long deadline(){return deadline;}
-        public void process(Process p){process=p;if(p!=null&&cancelled())p.destroyForcibly();}
-        synchronized void cancel(String reason){if(cancellation!=null)return;cancellation=reason;if(process!=null)process.destroyForcibly();if(thread!=null)thread.interrupt();}
+        public void request(String id){requestId=id;if(id!=null&&cancelled())backend.cancel(id);}
+        synchronized void cancel(String reason){if(cancellation!=null)return;cancellation=reason;if(requestId!=null)backend.cancel(requestId);if(thread!=null)thread.interrupt();}
         public void binderDied(){main.post(()->cancel("client_died"));}
         public void run(){
             thread=Thread.currentThread();long started=SystemClock.elapsedRealtime();String value=null,status="unavailable";
@@ -31,10 +30,10 @@ public final class LocalInferenceService extends Service {
             catch(Exception e){
                 if(SystemClock.elapsedRealtime()>=deadline)status="deadline";
                 else if(e instanceof IOException && "deadline".equals(e.getMessage()))status="deadline";
-                else if(e instanceof IOException && "runner_failed".equals(e.getMessage()))status="runner_failed";
+                else if(e instanceof IOException && e.getMessage()!=null && e.getMessage().matches("[A-Za-z_0-9]{1,48}"))status=e.getMessage();
                 else if(e instanceof IllegalArgumentException && e.getMessage()!=null && e.getMessage().matches("[A-Za-z_]{1,48}"))status=e.getMessage();
                 else status="inference_failed";
-                // Never log prompt/output text or exception messages from the runner.
+                // Never log prompt/output text or provider response bodies.
                 Log.i("RezossV73Local","request failure="+status+" exception="+e.getClass().getSimpleName()
                         +" elapsedMs="+(SystemClock.elapsedRealtime()-started));
             }
@@ -62,7 +61,7 @@ public final class LocalInferenceService extends Service {
                     if(recall){
                         if(!recallCaller||request.getBoolean("summary"))throw new SecurityException("task_denied");
                     }else if(!summaryCaller||request.containsKey("task"))throw new SecurityException("task_denied");
-                    if(backend==null||!backend.filesPresent()){respond(message.replyTo,null,"model_missing");return;}
+                    if(backend==null||!backend.configured()){respond(message.replyTo,null,"api_unconfigured");return;}
                     if(!jobs.isEmpty()){respond(message.replyTo,null,"busy");return;}
                     Job job=new Job(message);
                     if(job.input.isEmpty()||job.input.length()>12000||job.deadline<=SystemClock.elapsedRealtime()){respond(message.replyTo,null,"invalid_or_expired");return;}
@@ -76,7 +75,7 @@ public final class LocalInferenceService extends Service {
         watchdog.scheduleAtFixedRate(()->main.post(()->{for(Job job:jobs.values()){String blocked=ThermalGuard.blocked(this);if(blocked==null&&SystemClock.elapsedRealtime()>=job.deadline)blocked="deadline";if(blocked!=null)job.cancel(blocked);}}),500,500,TimeUnit.MILLISECONDS);
     }
     private boolean trusted(int uid,String caller){
-        try{return uid==getPackageManager().getApplicationInfo(caller,0).uid&&ModelStore.trusted(this,caller);}
+        try{return uid==getPackageManager().getApplicationInfo(caller,0).uid&&ApiProviderClient.trusted(this,caller);}
         catch(android.content.pm.PackageManager.NameNotFoundException ignored){return false;}
     }
     private static void respond(Messenger callback,String value,String status){

@@ -3,13 +3,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Exercise real ROM copy/metadata helpers only against a fresh /tmp fixture.
 set -eo pipefail
-: "${SRC_DIR:?Source buildenv.sh dm3q first}"
+: "${SRC_DIR:?Source buildenv.sh <target> first}"
 CS_TEST_ROOT=$(mktemp -d /tmp/callscreen-v6-rom-test.XXXXXX)
 export WORK_DIR="$CS_TEST_ROOT/work"
 export MODPATH="$SRC_DIR/unica/mods/paradigm"
-export TARGET_CODENAME=dm3q
+export TARGET_CODENAME="${TARGET_CODENAME:-dm1q}"
+export TARGET_FIRMWARE="${TARGET_FIRMWARE:-SM-S911N/KOO/357748330365787}"
+export SOURCE_FIRMWARE="${SOURCE_FIRMWARE:-$TARGET_FIRMWARE}"
+CS_TARGET_CSC="${TARGET_FIRMWARE#*/}"
 source "$SRC_DIR/scripts/utils/common_utils.sh"
-python3 - "$SRC_DIR/out/fw/SM-S918B_EUX" "$WORK_DIR" <<'PY'
+python3 - "${FW_DIR:-$SRC_DIR/out/fw}/${TARGET_FIRMWARE%%/*}_${CS_TARGET_CSC%%/*}" "$WORK_DIR" <<'PY'
 from pathlib import Path
 import shutil
 import sys
@@ -89,7 +92,7 @@ find "$WORK_DIR" -type f -exec sha256sum {} + | sort > "$CS_TEST_ROOT/after-refu
 cmp "$CS_TEST_ROOT/before-refusal.sha256" "$CS_TEST_ROOT/after-refusal.sha256"
 echo "PASS: competing XML edit rejected before any payload/metadata mutation"
 # Restore the exact known candidate XML and simulate a failing copy helper.
-CS_LOGGED_STAGE=$(sed -n 's/^- Build dm3q Call Screening v6 isolated-codec payload: //p' "$CS_TEST_ROOT/first-build.txt")
+CS_LOGGED_STAGE=$(sed -n "s/^- Build $TARGET_CODENAME Call Screening v6 isolated-codec payload: //p" "$CS_TEST_ROOT/first-build.txt")
 cp "$CS_LOGGED_STAGE/build/module/candidate/vendor/etc/audio/sku_kalama/mixer_paths.xml" "$WORK_DIR/vendor/etc/audio/sku_kalama/mixer_paths.xml"
 find "$WORK_DIR" -type f -exec sha256sum {} + | sort > "$CS_TEST_ROOT/before-copy-failure.sha256"
 # shellcheck disable=SC2317 # Overrides the helper for the sourced script
@@ -101,10 +104,10 @@ find "$WORK_DIR" -type f -exec sha256sum {} + | sort > "$CS_TEST_ROOT/after-copy
 cmp "$CS_TEST_ROOT/before-copy-failure.sha256" "$CS_TEST_ROOT/after-copy-failure.sha256"
 echo "PASS: copy-helper failure propagates even when sourced inside a conditional"
 # Device/disable guards run before native compilation, even with no firmware.
-TARGET_CODENAME=other source "$MODPATH/callscreen/integrate_v6_rom.sh"
+WORK_DIR="$CS_TEST_ROOT/no-kalama" source "$MODPATH/callscreen/integrate_v6_rom.sh"
 mkdir -p "$CS_TEST_ROOT/disabled-mod/callscreen/compat-tx/isolation-v6"
 touch "$CS_TEST_ROOT/disabled-mod/callscreen/compat-tx/isolation-v6/disable"
 # shellcheck disable=SC2097,SC2098 # Source the real script with a temporary MODPATH
 MODPATH="$CS_TEST_ROOT/disabled-mod" source "$MODPATH/callscreen/integrate_v6_rom.sh"
-echo "PASS: other devices and disabled v6 skip integration"
+echo "PASS: non-kalama vendors and disabled v6 skip integration"
 echo "Fixture evidence: $CS_TEST_ROOT"

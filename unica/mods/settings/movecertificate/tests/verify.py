@@ -74,7 +74,7 @@ run('smali', 'assemble', '--api', '35', patched / 'smali_classes4', '-o', temp /
 print('PASS Settings switch placement and zero-fuzz patch/DEX verification')
 
 work = temp / 'policy'
-firmware = repo / 'out/target/dm3q/work_dir'
+firmware = Path(os.environ['WORK_DIR']) if os.environ.get('WORK_DIR') else repo / 'out/target' / os.environ['TARGET_CODENAME'] / 'work_dir'
 for part in ('system/system', 'vendor', 'system_ext', 'product', 'odm'):
     src = firmware / part / 'etc/selinux'
     if src.is_dir():

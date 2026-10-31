@@ -12,7 +12,7 @@ public final class EngineService extends Service {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
-    private NativeEngine engine;
+    private ApiEngine engine;
     private Messenger endpoint;
     private volatile Job active;
     private volatile boolean destroyed;
@@ -22,6 +22,7 @@ public final class EngineService extends Service {
         final Messenger callback;
         final int uid;
         final String input;
+        final String requestId = java.util.UUID.randomUUID().toString();
         final boolean summary;
         final boolean foreground;
         final long deadline;
@@ -35,18 +36,22 @@ public final class EngineService extends Service {
             input = data.getString("input", "");
             summary = data.getBoolean("summary");
             foreground = data.getBoolean("foreground");
-            deadline = Math.min(data.getLong("deadline", 0), SystemClock.elapsedRealtime() + 30000);
+            // Summaries get more time so the on-device model can finish long threads.
+            deadline = Math.min(data.getLong("deadline", 0), SystemClock.elapsedRealtime() + (summary ? 75000 : 30000));
         }
         void cancel(String reason) {
             if (cancellation != null) return;
             cancellation = reason;
+            engine.cancel(requestId);
+            Thread running = runner;
+            if (running != null) running.interrupt();
             Log.i("RezossLLM", "request status=cancel_pending reason=" + reason);
         }
     }
 
     @Override public void onCreate() {
         super.onCreate();
-        engine = new NativeEngine(this);
+        engine = new ApiEngine(this);
         watchdog.scheduleAtFixedRate(() -> {
             Job job = active;
             if (job == null) return;
@@ -98,11 +103,12 @@ public final class EngineService extends Service {
         String status = "unavailable";
         try {
             if (job.cancellation == null) {
-                result = engine.generate(job.input, job.summary, job.deadline);
+                result = engine.generate(job.input, job.summary, job.deadline, job.requestId);
                 status = result == null ? "rejected_output" : "generated";
             }
         } catch (Exception failure) {
-            status = failure.getClass().getSimpleName();
+            status = failure instanceof ApiClient.ApiException
+                    ? ((ApiClient.ApiException) failure).status : failure.getClass().getSimpleName();
         } finally {
             if (job.cancellation != null) { result = null; status = job.cancellation; }
             job.runner = null;

@@ -5,7 +5,7 @@ if [[ $# != 2 ]]; then
     echo "Usage: source buildenv.sh dm3q; $0 INPUT.apk OUTPUT.apk" >&2
     exit 2
 fi
-: "${SRC_DIR:?Source buildenv.sh dm3q first}"
+: "${SRC_DIR:?Source buildenv.sh <target> first}"
 INPUT=$(realpath "$1")
 OUTPUT=$(realpath -m "$2")
 [[ ! -e "$OUTPUT" ]] || { echo 'Output already exists' >&2; exit 1; }

@@ -5,7 +5,7 @@
 MODDIR=${0%/*}
 fail() { echo "FAIL: $*"; exit 1; }
 [ "$(id -u)" = 0 ] || fail "Run through the root manager"
-[ "$(getprop ro.product.device)" = dm3q ] || fail "dm3q only"
+[ "$(getprop ro.product.device)" = "$(cat "$MODDIR/device")" ] || fail "Built for $(cat "$MODDIR/device") only"
 [ -f "$MODDIR/skip_mount" ] || fail "Missing skip_mount guard"
 for entry in system vendor post-fs-data.sh service.sh metamount.sh boot-completed.sh; do
     [ ! -e "$MODDIR/$entry" ] || fail "Unexpected active overlay/boot entry: $entry"
@@ -14,8 +14,8 @@ done
 (cd "$MODDIR" && sha256sum -c payload.sha256) || fail "Staged payload changed"
 HAL=$(sha256sum /vendor/lib64/hw/audio.primary.kalama.so | cut -d ' ' -f 1)
 PAL=$(sha256sum /vendor/lib64/libar-pal.so | cut -d ' ' -f 1)
-[ "$HAL" = 4ac2a7b0844088a7f1fae3207ccb8210cef2e1a480092536bb80a25acf21489a ] || fail "Live HAL is not original supported firmware"
-[ "$PAL" = 51d2ea15bbc5dfb4361946845e552ecdd80d2842d96504701069781145280bbd ] || fail "Live PAL differs"
+[ "$HAL" = "$(cat "$MODDIR/hal.sha256")" ] || fail "Live HAL is not original supported firmware"
+[ "$PAL" = "$(cat "$MODDIR/pal.sha256")" ] || fail "Live PAL differs"
 for path in "$MODDIR/candidate/vendor" "$MODDIR/candidate/vendor/lib64" \
     "$MODDIR/candidate/vendor/lib64/hw" \
     "$MODDIR/candidate/vendor/lib64/hw/audio.primary.kalama.so" \

@@ -7,7 +7,7 @@ set -eu
 MODDIR=${0%/*}
 fail(){ echo "REFUSED: $*"; exit 1; }
 [ "$(id -u)" = 0 ] || fail "Root required"
-[ "$(getprop ro.product.device)" = dm3q ] || fail "dm3q only"
+[ "$(getprop ro.product.device)" = "$(cat "$MODDIR/device")" ] || fail "Built for $(cat "$MODDIR/device") only"
 [ -f "$MODDIR/skip_mount" ] || fail "Already armed/missing guard"
 [ ! -e "$MODDIR/disable" ] && [ ! -e "$MODDIR/remove" ] || fail "Module disabled/removing"
 [ ! -e "$MODDIR/system" ] || fail "Existing preparation: inspect before retry"

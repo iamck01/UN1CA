@@ -241,7 +241,6 @@ SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_GALLERY_CONFIG_LIVEFOCUS_EFFEC
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_GRAPHICS_SUPPORT_REDUCE_FLASH_LIGHT" "TRUE"
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_GRAPHICS_SUPPORT_TOUCH_FAST_RESPONSE" "TRUE"
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_LCD_CONFIG_AOD_BRIGHTNESS_ANIMATION" "1"
-SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_LCD_CONFIG_AOD_FULLSCREEN" "0"
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MMFW_SUPPORT_HDR2SDR_MAX_8K" "TRUE"
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MMFW_SUPPORT_HIERARCHICAL_B_ENCODING" "TRUE"
 SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_MMFW_SUPPORT_LONGEXPOSURE_EFFECT_10BIT" "TRUE"
@@ -977,15 +976,67 @@ LOG "- Patch AODService SDK clock item stretch font data"
 APPLY_PATCH "system" "system/priv-app/AODService_v80/AODService_v80.apk" \
     "$REZOSS_AOD_PATCH_DIR/0009-Normalize-AOD-SDK-clock-item-stretch-font-data.patch" || return 1
 
+# The cover screen "Now brief and favorite apps" card requires
+# ro.product.first_api_level >= 34 on top of the AI version and LARGESCREEN
+# subdisplay checks. Flip5 launched with API 33, so drop only that check.
+# Done here because the AOD APK above replaces whatever the target patched.
+if [[ "$TARGET_CODENAME" == "b5q" ]]; then
+    LOG "- Patch AODService cover screen Now brief launch API gate"
+    python3 - "$REZOSS_AOD_DECODE" << 'PY' || LOGW "Cover screen Now brief gate not found, skipping"
+import pathlib, re, sys
+gate = re.compile(r'(const-string (v\d+), "ro\.product\.first_api_level"\n'
+                  r'(?:[^\n]*\n){1,8}?'
+                  r'\s*const/16 (v\d+), 0x22\n\s*\n)'
+                  r'\s*if-lt v\d+, \3, :cond_\w+\n\n')
+hits = []
+for f in pathlib.Path(sys.argv[1]).glob("smali*/**/*.smali"):
+    t = f.read_text()
+    if "LARGESCREEN" in t and "SEC_FLOATING_FEATURE_COMMON_CONFIG_AI_VERSION" in t:
+        n, c = gate.subn(r"\1", t)
+        if c:
+            hits.append((f, n, c))
+if len(hits) != 1 or hits[0][2] != 1:
+    sys.exit(1)
+hits[0][0].write_text(hits[0][1])
+print("Patched " + str(hits[0][0].relative_to(sys.argv[1])))
+PY
+fi
+
 unset REZOSS_AOD_TEMP REZOSS_AOD_DECODE REZOSS_AOD_PATCH_DIR
 
 LOG "- Patch VisualCloudCore Galaxy Store model check"
 APPLY_PATCH "system" "system/app/VisualCloudCore/VisualCloudCore.apk" \
     "$MODPATH/visualcloudcore/VisualCloudCore.apk/0001-Use-S25-Ultra-model-for-stub-update-check.patch"
 
-LOG "- Patch product framework overlay doze auto-brightness"
+# Append <$1 name="$2"> with the remaining args as items directly before
+# </resources>, instead of a context patch, so it works on any target overlay
+# (S23/Flip5/Fold5, S20/N20...) regardless of the surrounding arrays.xml.
+REZOSS_RRO_ADD_ARRAY()
+{
+    local FILE="$1"
+    local TYPE="$2"
+    local NAME="$3"
+    shift 3
 
-LOG "- Patch product framework overlay Now Nudge notification allowlist"
+    if grep -q "name=\"$NAME\"" "$FILE"; then
+        LOG "- $NAME already present, skipping"
+        return 0
+    fi
+    if ! grep -q '</resources>' "$FILE"; then
+        LOGW "Unexpected $FILE, skipping $NAME"
+        return 0
+    fi
+
+    local ARRAY="    <$TYPE name=\"$NAME\">"
+    local ITEM
+    for ITEM in "$@"; do
+        ARRAY+="\\n        <item>$ITEM</item>"
+    done
+    ARRAY+="\\n    </$TYPE>"
+    sed -i "s|</resources>|$ARRAY\\n</resources>|" "$FILE"
+}
+
+LOG "- Patch product framework overlay doze auto-brightness and Now Nudge allowlist"
 # The product RRO is named after the device (dm1qksx, dm3qxxx, b5qksx, ...).
 # Prefer the target's own overlay, then fall back to any auto-generated one.
 REZOSS_PRODUCT_RRO=""
@@ -1001,12 +1052,39 @@ else
 fi
 if [ -n "$REZOSS_PRODUCT_RRO" ]; then
     LOG "- Using product overlay $REZOSS_PRODUCT_RRO"
-    APPLY_PATCH "product" "$REZOSS_PRODUCT_RRO" \
-        "$MODPATH/rro/framework-res__dm1qksx__auto_generated_rro_product.apk/0002-Add-Now-Nudge-notification-allow-packages.patch"
+    DECODE_APK "product" "$REZOSS_PRODUCT_RRO" || return 1
+    REZOSS_RRO_ARRAYS="$APKTOOL_DIR/product/$REZOSS_PRODUCT_RRO/res/values/arrays.xml"
+    if [ ! -f "$REZOSS_RRO_ARRAYS" ]; then
+        mkdir -p "$(dirname "$REZOSS_RRO_ARRAYS")"
+        printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n' > "$REZOSS_RRO_ARRAYS"
+    fi
+
+    REZOSS_RRO_ADD_ARRAY "$REZOSS_RRO_ARRAYS" "integer-array" "config_autoBrightnessDisplayValuesNits_doze" \
+        2 5 12 60 64 82 139 198 331 490
+    REZOSS_RRO_ADD_ARRAY "$REZOSS_RRO_ARRAYS" "integer-array" "config_autoBrightnessLevels_doze" \
+        1 10 30 50 100 500 1000 2000 3000
+
+    REZOSS_RRO_ADD_ARRAY "$REZOSS_RRO_ARRAYS" "string-array" "config_DefaultNotificationNudgeAllowPackages" \
+        com.google.android.apps.dynamite \
+        com.kakao.talk \
+        jp.naver.line.android \
+        com.sgiggle.production \
+        com.nttdocomo.android.msg \
+        com.kddi.android.cmail \
+        org.thoughtcrime.securesms \
+        com.google.android.apps.messaging \
+        com.samsung.android.messaging \
+        com.whatsapp \
+        com.whatsapp.w4b \
+        org.telegram.messenger \
+        org.telegram.messenger.web
+
+    unset REZOSS_RRO_ARRAYS
 else
-    LOGW "No auto-generated framework-res product overlay found; skipping Now Nudge allowlist patch"
+    LOGW "No auto-generated framework-res product overlay found; skipping overlay arrays"
 fi
 unset REZOSS_PRODUCT_RRO
+unset -f REZOSS_RRO_ADD_ARRAY
 
 # =============================================================================
 # Notification Highlights / Galaxy AI Stack
@@ -1042,7 +1120,7 @@ else
     echo -e '\033[0;33m'"$(tail -n 60 <<< "$REZOSS_AI_BUILD_LOG")"'\033[0m' >&2
 fi
 unset REZOSS_AI_BUILD_LOG
-LOG "- Build updatable QWEN permission stub (V73 model APK uses the same package)"
+LOG "- Build updatable Rezoss AI permission stub (API app uses the same package)"
 QWEN_STUB_DIR="$MODPATH/qwen-llm/system-stub"
 QWEN_STUB_APK="$MODPATH/qwen-llm/system/priv-app/QWEN_LLM_rezoss_stub/QWEN_LLM_rezoss_stub.apk"
 if ! REZOSS_QWEN_BUILD_LOG="$(bash "$QWEN_STUB_DIR/build.sh" "$QWEN_STUB_APK" 2>&1)"; then
@@ -1054,13 +1132,13 @@ ADD_TO_WORK_DIR "$MODPATH/qwen-llm" "system" "system/priv-app/QWEN_LLM_rezoss_st
 SET_METADATA "system" "system/priv-app/QWEN_LLM_rezoss_stub" 0 0 755 "u:object_r:system_file:s0"
 SET_METADATA "system" "system/priv-app/QWEN_LLM_rezoss_stub/QWEN_LLM_rezoss_stub.apk" 0 0 644 "u:object_r:system_file:s0"
 unset QWEN_STUB_APK QWEN_STUB_DIR
-# The optional APK contains V73 model assets on dm3q; legacy builds retain GGUF.
+# The separately installed API app stores the user's endpoint, model, and key.
 # Remove legacy payloads from incremental builds; keep only the bridge.
 DELETE_FROM_WORK_DIR "system" "system/bin/unica-summary-llama"
 DELETE_FROM_WORK_DIR "system" "system/bin/unica-summary-llama-server"
 DELETE_FROM_WORK_DIR "system" "system/etc/unica/local-summary/qwen2.5-0.5b-instruct-q4_k_m.gguf"
 ADD_TO_WORK_DIR "$MODPATH" "system" "system/etc/sysconfig/rezoss-ai-associations.xml" 0 0 644 "u:object_r:system_file:s0"
-LOG "- Install out/archived/QWEN_LLM/QWEN_LLM_rezoss.apk separately to enable inference"
+LOG "- Install out/archived/QWEN_LLM/QWEN_LLM_rezoss.apk, then open Rezoss AI to configure the API"
 LOCAL_SUMMARY_ALLOWLIST="$WORK_DIR/system/system/etc/sysconfig/allowed-system-preload-apps.xml"
 if ! grep -q -F 'package="io.mesalabs.unica.localsummary"' "$LOCAL_SUMMARY_ALLOWLIST"; then
     EVAL "LC_ALL=C patch --batch --fuzz=0 -p1 -d \"$WORK_DIR/system/system/etc/sysconfig\" < \"$LOCAL_SUMMARY_SERVICE_DIR/allowed-system-preload-apps.xml/0001-Allow-UN1CA-local-summary-provider.patch\"" \

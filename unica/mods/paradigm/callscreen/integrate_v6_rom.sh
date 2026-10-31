@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Copyright (c) 2026 Rezoss
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Sourced by Paradigm. Compile exact-firmware dm3q v6 payload into ROM images.
+# Sourced by Paradigm. Compile the exact-firmware v6 payload into ROM images.
+# Firmware paths come from TARGET_FIRMWARE/SOURCE_FIRMWARE; unsupported
+# (unpinned) firmware is skipped instead of failing the build.
 # Never installs a root module, changes a phone, or relaxes SELinux policy.
 (
     set -euo pipefail
-    [[ "${TARGET_CODENAME:-}" == dm3q ]] || exit 0
+    # The payload patches the kalama (SM8550) audio HAL; skip anything else.
+    [[ -f "${WORK_DIR:-}/vendor/lib64/hw/audio.primary.kalama.so" ]] || exit 0
     CS_ROOT="$MODPATH/callscreen"
     CS_V6="$CS_ROOT/compat-tx/isolation-v6"
     for CS_DISABLED in "$CS_ROOT/disable" "$CS_ROOT/compat-tx/disable" "$CS_V6/disable"; do
@@ -14,13 +17,27 @@
             exit 0
         fi
     done
-    : "${SRC_DIR:?Source buildenv.sh dm3q first}"
+    : "${SRC_DIR:?Source buildenv.sh <target> first}"
     : "${WORK_DIR:?ROM working directory required}"
+    : "${TARGET_CODENAME:?}" "${TARGET_FIRMWARE:?}" "${SOURCE_FIRMWARE:?}"
+    # MODEL/CSC/IMEI -> $FW_DIR/MODEL_CSC
+    CS_FW(){ local CS_CSC="${1#*/}"; echo "${FW_DIR:-$SRC_DIR/out/fw}/${1%%/*}_${CS_CSC%%/*}"; }
     # The existing candidate builder remains the single source of payload
     # generation. Stage under /tmp, never inside source firmware or target.
     CS_STAGE=$(mktemp -d /tmp/unica-callscreen-v6-rom.XXXXXX) || exit 1
-    LOG "- Build dm3q Call Screening v6 isolated-codec payload: $CS_STAGE"
-    python3 "$CS_V6/build_v6.py" --output "$CS_STAGE/build" || exit 1
+    LOG "- Build $TARGET_CODENAME Call Screening v6 isolated-codec payload: $CS_STAGE"
+    CS_RC=0
+    python3 "$CS_V6/build_v6.py" --output "$CS_STAGE/build" --device "$TARGET_CODENAME" \
+        --vendor-fw "$(CS_FW "$TARGET_FIRMWARE")" --system-fw "$(CS_FW "$SOURCE_FIRMWARE")" || CS_RC=$?
+    if [[ "$CS_RC" == 3 ]]; then
+        LOGW "Call Screening v6 has no pinned audio HAL/PAL for $TARGET_CODENAME, skipping"
+        exit 0
+    fi
+    if [[ "$CS_RC" == 4 ]]; then
+        LOGW "Call Screening v6 needs the Android NDK (ANDROID_NDK_HOME), skipping"
+        exit 0
+    fi
+    [[ "$CS_RC" == 0 ]] || exit 1
     CS_PAYLOAD="$CS_STAGE/build/module/candidate"
     # Check ALL destinations before replacing any. Resume/repeated module
     # application accepts exact v6 outputs; unrelated vendor edits fail closed.

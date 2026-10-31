@@ -1,0 +1,4 @@
+id=stagefright
+name=Stagefright OMX encoder fix
+author=ssch71
+description=Fix the screen recorder crash in ACodec::reconfigEncoder4OtherApps() on OMX vendors.

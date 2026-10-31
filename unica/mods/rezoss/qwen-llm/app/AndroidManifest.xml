@@ -1,0 +1,27 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.mesalabs.rezoss.qwen" android:versionCode="8" android:versionName="3.1-api-local">
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="36" />
+    <permission android:name="io.mesalabs.rezoss.permission.QWEN_ENGINE" android:protectionLevel="signature|knownSigner" android:knownCerts="34df0e7a9f1cf1892e45c056b4973cd81ccf148a4050d11aea4ac5a65f900a42" />
+    <permission android:name="io.mesalabs.rezoss.permission.QWEN_API" android:protectionLevel="signature|knownSigner" android:knownCerts="34df0e7a9f1cf1892e45c056b4973cd81ccf148a4050d11aea4ac5a65f900a42" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <queries>
+        <package android:name="io.mesalabs.unica.localsummary" />
+        <package android:name="com.samsung.android.aioskernelservice" />
+        <package android:name="io.mesalabs.rezoss.qwen.model" />
+    </queries>
+    <application android:label="Rezoss AI" android:allowBackup="false"
+        android:extractNativeLibs="true" android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <service android:name=".EngineService" android:exported="true"
+            android:permission="io.mesalabs.rezoss.permission.QWEN_ENGINE" />
+        <activity android:name=".SettingsActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <provider android:name=".ApiProvider" android:authorities="io.mesalabs.rezoss.qwen.api"
+            android:exported="true" android:grantUriPermissions="false"
+            android:permission="io.mesalabs.rezoss.permission.QWEN_API" />
+    </application>
+</manifest>

@@ -22,7 +22,7 @@ final class CallScreeningContract {
         if(!language.find())throw new IllegalArgumentException("Unsupported Call Screening language");
         String conversation=raw.substring(start+"<conversation>\n".length(),end);
         if(conversation.contains("{<input>}"))throw new IllegalArgumentException("Unexpanded conversation");
-        prompt="Screen a call in "+language.group(1)+". Return only JSON: "
+        prompt="Screen a call in "+language.group(1)+". Use the requested language for the text values. If that language is written with English/Latin letters in the transcript, keep that script; do not translate it into English or switch scripts. Preserve names as written. Keep the required JSON keys and schema unchanged. Return only JSON: "
             +(unknown?"caller (name), ":"")+"purpose (brief reason), answer (one spoken sentence, at most 8 words). All values strings. "
             +"Extract facts only from Caller; empty string if missing. Ask for "+(unknown?"missing name or reason":"missing reason")
             +"; otherwise acknowledge the reason. Never output field names as values. "

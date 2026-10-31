@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Rebuild Java from source while preserving the tested native runtime and stub.
 set -euo pipefail
-: "${SRC_DIR:?Source buildenv.sh dm1q first}"
+: "${SRC_DIR:?Source buildenv.sh <target> first}"
 OUTPUT=${1:?Usage: build_rom_backend.sh NEW_OUTPUT_APK}
 [[ ! -e "$OUTPUT" ]] || { echo "Refusing existing output: $OUTPUT" >&2; exit 1; }
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)

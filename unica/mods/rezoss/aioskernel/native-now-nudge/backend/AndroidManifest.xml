@@ -2,7 +2,7 @@
  <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="36"/>
  <permission android:name="com.samsung.android.aioskernelservice.EXECUTE_GENAI" android:protectionLevel="signature"/>
  <uses-permission android:name="com.samsung.android.aioskernelservice.EXECUTE_GENAI"/>
- <uses-permission android:name="io.mesalabs.rezoss.permission.V73_MODELS"/>
+ <uses-permission android:name="io.mesalabs.rezoss.permission.QWEN_API"/>
  <queries><package android:name="io.mesalabs.rezoss.qwen"/><package android:name="io.mesalabs.unica.localsummary"/><package android:name="com.samsung.android.ssco"/></queries>
  <application android:label="AIOS V73 reply POC" android:allowBackup="false" android:extractNativeLibs="true" android:largeHeap="true">
   <service android:name="com.samsung.android.aioskernelservice.AIOSKernelService" android:exported="true" android:permission="com.samsung.android.aioskernelservice.EXECUTE_GENAI">

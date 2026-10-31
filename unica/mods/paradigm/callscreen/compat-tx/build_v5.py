@@ -7,11 +7,11 @@ from pathlib import Path
 HERE=Path(__file__).resolve().parent
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',type=Path,required=True)
-a=p.parse_args()
+a,forward=p.parse_known_args()  # --device/--vendor-fw/--system-fw go to build_candidate.py
 out=a.output.resolve()
 if not out.is_relative_to(Path('/tmp')) or out.exists():
     raise SystemExit('Output must be new and under /tmp')
-subprocess.run([sys.executable,str(HERE/'build_candidate.py'),'--output',str(out)],check=True)
+subprocess.run([sys.executable,str(HERE/'build_candidate.py'),'--output',str(out),*forward],check=True)
 m=out/'module'
 (m/'module.prop').write_text('''id=rezoss_callscreen_compat_tx_v5
 name=Call Screening TX compatibility v5 TEST

@@ -1,17 +1,89 @@
-From 32d10432f4e91f9f0c2e9d77122047952bdba738 Mon Sep 17 00:00:00 2001
+From 13dc2202e2a59b069cd3909847dc4199eb254a35 Mon Sep 17 00:00:00 2001
 From: ssch71 <s01093450498@gmail.com>
 Date: Fri, 30 Oct 2026 16:47:32 +0900
 Subject: [PATCH] Enable dynamic resolution control
 
-Show the screen resolution menu and fall back to forced size and density
-when the composer exposes a single display mode (legacy DYN_RESOLUTION_CONTROL targets).
+Show the screen resolution menu and its radio buttons, and fall back to
+forced size and density when the composer exposes a single display mode
+(legacy DYN_RESOLUTION_CONTROL targets).
 ---
+ .../display/ScreenResolutionFragment.smali    |  43 +-
  .../settings/display/SecDisplayUtils.smali    |  20 +
  ...ScreenResolutionPreferenceController.smali |  15 +-
+ ...reenResolutionSingleChoiceController.smali |  15 +-
  .../io/mesalabs/unica/LegacyResolution.smali  | 373 ++++++++++++++++++
- 3 files changed, 406 insertions(+), 2 deletions(-)
+ 5 files changed, 459 insertions(+), 7 deletions(-)
  create mode 100644 smali_classes5/io/mesalabs/unica/LegacyResolution.smali
 
+diff --git a/smali_classes3/com/samsung/android/settings/display/ScreenResolutionFragment.smali b/smali_classes3/com/samsung/android/settings/display/ScreenResolutionFragment.smali
+index 79759100..55408fb2 100644
+--- a/smali_classes3/com/samsung/android/settings/display/ScreenResolutionFragment.smali
++++ b/smali_classes3/com/samsung/android/settings/display/ScreenResolutionFragment.smali
+@@ -360,9 +360,17 @@
+ 
+     iput-object v1, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mScreenResolutionButton:Lcom/samsung/android/settings/widget/SecHorizontalRadioPreference;
+ 
+-    sget-object v1, Lcom/samsung/android/settings/Rune;->COMMON_CONFIG_PACKAGE_NAME_SMART_MANAGER:Ljava/lang/String;
++    if-eqz v1, :cond_unica_0
+ 
+-    invoke-virtual {p0, p1}, Lcom/android/settings/SettingsPreferenceFragment;->removePreference(Ljava/lang/String;)Z
++    iget v2, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mScreenResolution:I
++
++    invoke-static {v2}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
++
++    move-result-object v2
++
++    invoke-virtual {v1, v2}, Lcom/samsung/android/settings/widget/SecHorizontalRadioPreference;->setValue(Ljava/lang/String;)V
++
++    :cond_unica_0
+ 
+     new-instance p1, Landroid/graphics/Point;
+ 
+@@ -888,7 +896,7 @@
+ .end method
+ 
+ .method public final onResume()V
+-    .locals 2
++    .locals 3
+ 
+     invoke-super {p0}, Lcom/android/settings/dashboard/DashboardFragment;->onResume()V
+ 
+@@ -932,6 +940,35 @@
+     invoke-virtual {v0, v1}, Lcom/samsung/android/desktopmode/SemDesktopModeManager;->registerListener(Lcom/samsung/android/desktopmode/SemDesktopModeManager$DesktopModeListener;)V
+ 
+     :cond_1
++    iget-object v0, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mScreenResolutionButton:Lcom/samsung/android/settings/widget/SecHorizontalRadioPreference;
++
++    if-eqz v0, :cond_unica_1
++
++    iget-object v1, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mContext:Landroid/content/Context;
++
++    invoke-static {v1}, Lcom/samsung/android/settings/display/SecDisplayUtils;->getScreenResolution(Landroid/content/Context;)I
++
++    move-result v1
++
++    iput v1, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mScreenResolution:I
++
++    invoke-static {v1}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
++
++    move-result-object v1
++
++    invoke-virtual {v0, v1}, Lcom/samsung/android/settings/widget/SecHorizontalRadioPreference;->setValue(Ljava/lang/String;)V
++
++    const/4 v0, 0x0
++
++    iput-boolean v0, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mScreenChangeState:Z
++
++    iget-object v1, p0, Lcom/samsung/android/settings/display/ScreenResolutionFragment;->mApplyButton:Lcom/samsung/android/settings/widget/SecButtonPreference;
++
++    if-eqz v1, :cond_unica_1
++
++    invoke-virtual {v1, v0}, Landroidx/preference/Preference;->setEnabled(Z)V
++
++    :cond_unica_1
+     return-void
+ .end method
+ 
 diff --git a/smali_classes3/com/samsung/android/settings/display/SecDisplayUtils.smali b/smali_classes3/com/samsung/android/settings/display/SecDisplayUtils.smali
 index 1d4dd641..31240356 100644
 --- a/smali_classes3/com/samsung/android/settings/display/SecDisplayUtils.smali
@@ -73,6 +145,33 @@ index 6875a227..e5f49aa2 100644
 +    return p0
 +
 +    :cond_0
++    const/4 p0, 0x0
+ 
+     return p0
+ .end method
+diff --git a/smali_classes3/com/samsung/android/settings/display/controller/SecScreenResolutionSingleChoiceController.smali b/smali_classes3/com/samsung/android/settings/display/controller/SecScreenResolutionSingleChoiceController.smali
+index c9c9a66b..52b09eca 100644
+--- a/smali_classes3/com/samsung/android/settings/display/controller/SecScreenResolutionSingleChoiceController.smali
++++ b/smali_classes3/com/samsung/android/settings/display/controller/SecScreenResolutionSingleChoiceController.smali
+@@ -520,9 +520,20 @@
+ .method public getAvailabilityStatus()I
+     .locals 0
+ 
+-    sget-object p0, Lcom/samsung/android/settings/Rune;->COMMON_CONFIG_PACKAGE_NAME_SMART_MANAGER:Ljava/lang/String;
++    iget-object p0, p0, Lcom/android/settingslib/core/AbstractPreferenceController;->mContext:Landroid/content/Context;
++
++    invoke-static {p0}, Lcom/android/settings/Utils;->isDesktopModeEnabled(Landroid/content/Context;)Z
++
++    move-result p0
++
++    if-eqz p0, :cond_unica_0
+ 
+-    const/4 p0, 0x3
++    const/4 p0, 0x5
++
++    return p0
++
++    :cond_unica_0
 +    const/4 p0, 0x0
  
      return p0

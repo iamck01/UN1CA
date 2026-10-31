@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Generate helper smali from maintained Java; never hand-edit extracted smali.
 set -euo pipefail
-: "${SRC_DIR:?Source buildenv.sh dm1q first}"
+: "${SRC_DIR:?Source buildenv.sh <target> first}"
 DECODED=${1:?Usage: build_client_helper.sh SMARTSUGGESTIONS_DECODE}
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SDK=${ANDROID_HOME:-$HOME/Android/Sdk}

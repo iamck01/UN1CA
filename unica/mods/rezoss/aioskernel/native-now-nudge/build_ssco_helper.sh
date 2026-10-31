@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Compile maintained compatibility Java for Samsung's existing model contracts.
 set -euo pipefail
-: "${SRC_DIR:?Source buildenv.sh dm3q first}"
+: "${SRC_DIR:?Source buildenv.sh <target> first}"
 DECODED=${1:?Usage: build_ssco_helper.sh SEMANTICSEARCHCORE_DECODE}
 [[ -d "$DECODED" ]] || { echo "Decode directory missing: $DECODED" >&2; exit 1; }
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)

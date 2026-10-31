@@ -1,7 +1,8 @@
 name: Qwen model APK
 
-# Builds the separately installable Now Nudge / AI reply model APK
-# (io.mesalabs.rezoss.qwen.v73). Needs no stock firmware, so it does not
+# Builds the separately installable Rezoss AI app (io.mesalabs.rezoss.qwen,
+# API or on-device backend) and the optional on-device model pack
+# (io.mesalabs.rezoss.qwen.model). Needs no stock firmware, so it does not
 # depend on Samsung FUS and can run on its own.
 on:
   workflow_dispatch:
@@ -10,6 +11,7 @@ on:
       - 'sembilan'
     paths:
       - 'unica/mods/rezoss/qwen-llm/**'
+      - 'unica/mods/rezoss/local-summary-service/system/bin/**'
       - 'unica/mods/rezoss/aioskernel/native-now-nudge/config.sh'
       - 'unica/mods/rezoss/aioskernel/native-now-nudge/verify_payload.py'
       - 'unica/mods/rezoss/aioskernel/native-now-nudge/payload/**'
@@ -32,6 +34,7 @@ jobs:
             security
             unica/mods/rezoss/qwen-llm
             unica/mods/rezoss/aioskernel/native-now-nudge
+            unica/mods/rezoss/local-summary-service/system/bin
 
       - name: Set up JDK 17
         uses: actions/setup-java@v6
@@ -62,5 +65,18 @@ jobs:
         with:
           name: QWEN_LLM_rezoss
           path: out/QWEN_LLM_rezoss.apk
+          compression-level: 0
+          retention-days: 14
+
+      - name: Build on-device model pack
+        run: |
+          export SRC_DIR="$GITHUB_WORKSPACE"
+          bash unica/mods/rezoss/qwen-llm/model/build.sh "$GITHUB_WORKSPACE/out/QWEN_LLM_rezoss_model.apk"
+
+      - name: Upload model pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: QWEN_LLM_rezoss_model
+          path: out/QWEN_LLM_rezoss_model.apk
           compression-level: 0
           retention-days: 14

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
-: "${SRC_DIR:?Source buildenv.sh dm1q first}"
+: "${SRC_DIR:?Source buildenv.sh <target> first}"
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 OUT="${1:?Output APK required}"
 SDK="${ANDROID_HOME:-$HOME/Android/Sdk}"
