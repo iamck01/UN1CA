@@ -1,0 +1,2 @@
+is_substring("T733XX", getprop("ro.boot.bootloader")) && verify_no_downgrade(getprop("ro.boot.bootloader"), "T733XXU5CWC1") && abort("E3003: This package requires Android 14 firmware.");
+

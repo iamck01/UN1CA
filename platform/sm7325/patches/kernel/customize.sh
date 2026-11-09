@@ -1,3 +1,8 @@
+if [[ "$TARGET_CODENAME" == "gts7fewifi" ]]; then
+    LOG "- Keeping stock SM-T733 (gts7fewifi) kernel, dtbo, and vendor_boot images"
+    return 0 2>/dev/null || exit 0
+fi
+
 # [
 EXTRACT_RAMDISK()
 {
