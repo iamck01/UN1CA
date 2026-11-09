@@ -115,6 +115,11 @@ PARSE_FIRMWARE_STRING()
 {
     local STRING="$1"
 
+    MODEL=""
+    CSC=""
+    IMEI=""
+    SERIAL_NO=""
+
     if [ ! "$STRING" ]; then
         LOGE "Firmware value cannot be empty"
         return 1

@@ -29,7 +29,7 @@ fi
 if [ -f "$SRC_DIR/target/$TARGET_CODENAME/camera/aremoji-feature.xml" ]; then
     LOG "- Adding /system/system/cameradata/aremoji-feature.xml"
     EVAL "cp -a \"$SRC_DIR/target/$TARGET_CODENAME/camera/aremoji-feature.xml\" \"$WORK_DIR/system/system/cameradata/aremoji-feature.xml\""
-else
+elif [ -f "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system/cameradata/aremoji-feature.xml" ]; then
     ADD_TO_WORK_DIR "$TARGET_FIRMWARE" \
         "system" "system/cameradata/aremoji-feature.xml" 0 0 644 "u:object_r:system_file:s0"
 fi
@@ -365,12 +365,12 @@ fi
 
 # Fix device model number in photo/video metadata
 while IFS= read -r f; do
-    HEX_PATCH "$f" "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00"
-done < <(grep -r -w -l "ro.product.model" "$WORK_DIR/vendor" | grep "camera")
+    HEX_PATCH "$f" "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00" || true
+done < <(grep -r -w -l "ro.product.model" "$WORK_DIR/vendor" | grep "camera" || true)
 HEX_PATCH "$WORK_DIR/system/system/lib/libstagefright.so" \
-    "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00"
+    "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00" || true
 HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" \
-    "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00"
+    "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00" || true
 
 # Fix object capture
 if [[ "$TARGET_OS_SINGLE_SYSTEM_IMAGE" == "essi" ]]; then
