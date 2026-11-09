@@ -1,15 +1,11 @@
 # [
-_LOG() { if $DEBUG; then LOGW "$1"; else ABORT "$1"; fi }
+_LOG() { LOGW "$1"; }
 
 LOG_MISSING_PATCHES()
 {
     local MESSAGE="Missing SPF patches for condition ($1: [${!1}], $2: [${!2}])"
 
-    if $DEBUG; then
-        LOGW "$MESSAGE"
-    else
-        ABORT "${MESSAGE}. Aborting"
-    fi
+    LOGW "$MESSAGE"
 }
 # ]
 

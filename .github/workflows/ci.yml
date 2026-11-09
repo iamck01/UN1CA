@@ -37,23 +37,11 @@ jobs:
             .github
             external
             platform/sm7325
+            prebuilts
             scripts
             security
             target/gts7fewifi
             unica
-            prebuilts/samsung/a17xxx
-            prebuilts/samsung/a56xnaxx
-            prebuilts/samsung/a73xqxx
-            prebuilts/samsung/b0qxxx
-            prebuilts/samsung/b4qxxx
-            prebuilts/samsung/dm1qxxx
-            prebuilts/samsung/dm3qxxx
-            prebuilts/samsung/gta9pxxx
-            prebuilts/samsung/m3qxxx
-            prebuilts/samsung/pa2qxxx
-            prebuilts/samsung/r11sxxx
-            prebuilts/samsung/r9qxxx
-            prebuilts/samsung/r9sxxx
 
       - name: Set up build environment
         run: |
@@ -122,9 +110,19 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Upload ROM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UN1CA-OneUI85-${{ matrix.target }}-${{ github.run_id }}
+          path: |
+            out/UN1CA_*.zip
+          compression-level: 0
+          retention-days: 7
+
       - name: Upload to GoFile & Artifacts
+        continue-on-error: true
         run: |
-          ZIP_FILE=$(find out -type f -name "*.zip" | head -n 1)
+          ZIP_FILE=$(find out -type f -name "UN1CA_*.zip" | head -n 1)
 
           if [ -z "$ZIP_FILE" ]; then
             echo "Error: No ZIP file found in out/ directory!"
@@ -132,6 +130,7 @@ jobs:
           fi
 
           echo "Found file: $ZIP_FILE"
+          ls -lh "$ZIP_FILE"
           md5sum "$ZIP_FILE"
           sha256sum "$ZIP_FILE"
 

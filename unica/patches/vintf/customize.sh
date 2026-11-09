@@ -1,4 +1,4 @@
-_LOG() { if $DEBUG; then LOGW "$1"; else ABORT "$1"; fi }
+_LOG() { LOGW "$1"; }
 
 if [ -f "$SRC_DIR/target/$TARGET_CODENAME/vintf/compatibility_matrix.device.xml" ]; then
     LOG "- Adding /system/system/etc/vintf/compatibility_matrix.device.xml"

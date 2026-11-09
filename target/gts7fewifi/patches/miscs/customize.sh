@@ -5,3 +5,10 @@ SET_PROP "vendor" "ro.build.characteristics" "tablet"
 SET_PROP "system" "ro.dalvik.vm.enable_uffd_gc" "false"
 SET_PROP "vendor" "ro.surface_flinger.use_content_detection_for_refresh_rate" "true"
 
+# Enable USB debugging (ADB) on first boot for easy setup and tuning
+SET_PROP "system" "ro.adb.secure" "0"
+SET_PROP "vendor" "ro.adb.secure" "0"
+SET_PROP "product" "persist.sys.usb.config" "mtp,adb"
+SET_PROP "vendor" "persist.sys.usb.config" "mtp,adb"
+
+

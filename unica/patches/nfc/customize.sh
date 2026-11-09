@@ -1,5 +1,5 @@
 # [
-_LOG() { if $DEBUG; then LOGW "$1"; else ABORT "$1"; fi }
+_LOG() { LOGW "$1"; }
 # ]
 
 TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"

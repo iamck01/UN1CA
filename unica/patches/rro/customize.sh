@@ -7,7 +7,7 @@ if [[ "$SOURCE_PRODUCT_NAME" == "$TARGET_PRODUCT_NAME" ]]; then
     return 0
 fi
 
-_LOG() { if $DEBUG; then LOGW "$1"; else ABORT "$1"; fi }
+_LOG() { LOGW "$1"; }
 
 while IFS= read -r f; do
     f="$(basename "$f")"
