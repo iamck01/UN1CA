@@ -14,48 +14,64 @@ $d
 "
 done
 
-# Dynamic match for heavy/non-essential apps
+# Offline models / translation weights if present
+for m in etc/models system/etc/models system/system/etc/models; do
+    [ -d "$WORK_DIR/system/$m" ] && SYSTEM_DEBLOAT+="
+${m#system/}
+"
+done
+
+# Dynamic match for heavy/non-essential apps in system
 if [ -d "$WORK_DIR/system" ]; then
     SYSTEM_DEBLOAT+="
-$(find "$WORK_DIR/system" -maxdepth 4 -type d \( \
-    -name "*SKT*" -o \
-    -name "*KTC*" -o \
-    -name "*LGT*" -o \
-    -name "*LGU*" -o \
-    -name "*OneStore*" -o \
-    -name "*Tstore*" -o \
-    -name "*SecCarrier*" -o \
-    -name "KidsHome" -o \
-    -name "KidsInstaller" -o \
-    -name "GlobalGoals" -o \
-    -name "SamsungMembers" -o \
-    -name "ARZone" -o \
-    -name "AREmoji" -o \
-    -name "AREmojiEditor" -o \
-    -name "AvatarEmojiSticker" -o \
-    -name "LiveDrawing" -o \
-    -name "DecoPic" -o \
-    -name "QuickMeasure" -o \
-    -name "DexOnPC" -o \
-    -name "SamsungHealth" -o \
-    -name "DigitalKey" -o \
-    -name "PaymentFramework" -o \
-    -name "SamsungCarKeyFw" -o \
-    -name "OneDrive*" -o \
-    -name "Microsoft365" -o \
-    -name "Outlook" -o \
-    -name "LinkedIn*" \
+$(find "$WORK_DIR/system" -maxdepth 5 -type d \( \
+    -iname "*SKT*" -o \
+    -iname "*KTC*" -o \
+    -iname "*LGT*" -o \
+    -iname "*LGU*" -o \
+    -iname "*OneStore*" -o \
+    -iname "*Tstore*" -o \
+    -iname "*SecCarrier*" -o \
+    -iname "*Kids*" -o \
+    -iname "*GlobalGoals*" -o \
+    -iname "*SamsungMembers*" -o \
+    -iname "*ARZone*" -o \
+    -iname "*AREmoji*" -o \
+    -iname "*AvatarEmoji*" -o \
+    -iname "*LiveDrawing*" -o \
+    -iname "*DecoPic*" -o \
+    -iname "*QuickMeasure*" -o \
+    -iname "*DexOnPC*" -o \
+    -iname "*SamsungHealth*" -o \
+    -iname "*DigitalKey*" -o \
+    -iname "*PaymentFramework*" -o \
+    -iname "*SamsungCarKey*" -o \
+    -iname "*OneDrive*" -o \
+    -iname "*Microsoft365*" -o \
+    -iname "*Outlook*" -o \
+    -iname "*LinkedIn*" -o \
+    -iname "*Bixby*" -o \
+    -iname "*VoiceWakeUp*" -o \
+    -iname "*SmartSwitch*" -o \
+    -iname "*SamsungTTS*" -o \
+    -iname "*SMT_*" -o \
+    -iname "*Tips*" -o \
+    -iname "*VoiceNote*" \
 \) 2>/dev/null | sed "s|$WORK_DIR/system/||g")
 "
 fi
 
+# Dynamic match for heavy store-installable apps in product
 if [ -d "$WORK_DIR/product" ]; then
     PRODUCT_DEBLOAT+="
-$(find "$WORK_DIR/product" -maxdepth 4 -type d \( \
-    -name "GoogleTTS" -o \
-    -name "Videos" -o \
-    -name "Drive" -o \
-    -name "Photos" \
+$(find "$WORK_DIR/product" -maxdepth 5 -type d \( \
+    -iname "*Velvet*" -o \
+    -iname "*GoogleTTS*" -o \
+    -iname "*SpeechServices*" -o \
+    -iname "*GoogleRestore*" -o \
+    -iname "*Videos*" -o \
+    -iname "*Drive*" -o \
+    -iname "*Photos*" \
 \) 2>/dev/null | sed "s|$WORK_DIR/product/||g")
 "
 fi
