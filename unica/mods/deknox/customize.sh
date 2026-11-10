@@ -11,7 +11,7 @@ DEKNOX_HEX_PATCH()
         return 0
     fi
 
-    HEX_PATCH "$FILE" "$FROM" "$TO"
+    HEX_PATCH "$FILE" "$FROM" "$TO" || LOGW "DEKNOX_HEX_PATCH skipped non-matching pattern in ${FILE//$WORK_DIR/}"
 }
 
 DELETE_FROM_WORK_DIR "system" "system/app/BlockchainBasicKit"
