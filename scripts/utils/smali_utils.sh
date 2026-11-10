@@ -73,20 +73,25 @@ SMALI_PATCH()
 
     # Check if provided smali exists
     if [ ! -f "$FILE_PATH/$SMALI" ]; then
-        LOGE "Smali not found: \"/$PARTITION/$FILE/$SMALI\""
-
         local MATCHES
-        MATCHES="$(find "$FILE_PATH" -type f -name "*${SMALI##*/}")"
+        MATCHES="$(find "$FILE_PATH" -type f -name "${SMALI##*/}")"
 
-        if [ "$MATCHES" ]; then
-            echo -e "\n\033[0;31mPossible matches?" >&2
-            echo -e -n "$(head -n 10 <<< "${MATCHES//$FILE_PATH\//    }")" >&2
-            [ "$(wc -l <<< "$MATCHES")" -gt 10 ] && \
-                echo -e -n "\n    ...and other $(($(wc -l <<< "$MATCHES") - 10)) matches"  >&2
-            echo -e "\033[0m" >&2
+        if [ "$(wc -l <<< "$MATCHES")" -eq 1 ] && [ -f "$MATCHES" ]; then
+            SMALI="${MATCHES#$FILE_PATH/}"
+            LOG "- Found smali at relocated path: \"$SMALI\""
+        else
+            LOGE "Smali not found: \"/$PARTITION/$FILE/$SMALI\""
+
+            if [ "$MATCHES" ]; then
+                echo -e "\n\033[0;31mPossible matches?" >&2
+                echo -e -n "$(head -n 10 <<< "${MATCHES//$FILE_PATH\//    }")" >&2
+                [ "$(wc -l <<< "$MATCHES")" -gt 10 ] && \
+                    echo -e -n "\n    ...and other $(($(wc -l <<< "$MATCHES") - 10)) matches"  >&2
+                echo -e "\033[0m" >&2
+            fi
+
+            return 1
         fi
-
-        return 1
     elif [[ "$OPERATION" == "remove" ]]; then
         local USED
         USED="$(find "$FILE_PATH" -type f -name "*.smali" ! -name "*.orig" ! -name "*.rej" ! -path "*$SMALI" -type f -exec grep -r -n -- "$(cut -d "." -f "1" <<< "${SMALI#*/}");" {} \+ || true)"
