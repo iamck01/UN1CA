@@ -98,13 +98,8 @@ SMALI_PATCH()
         USED="$(cut -d ":" -f 1-2 <<< "$USED")"
 
         if [ "$USED" ]; then
-            LOGE "Cannot remove \"$SMALI\" from /$PARTITION/$FILE as it is used elsewhere"
-            echo -e "\n\033[0;31mMatches:" >&2
-            echo -e -n "$(head -n 10 <<< "${USED//$FILE_PATH\//    - }")" >&2
-            [ "$(wc -l <<< "$USED")" -gt 10 ] && \
-                echo -e -n "\n    ...and other $(($(wc -l <<< "$USED") - 10)) matches" >&2
-            echo -e "\033[0m" >&2
-            return 1
+            LOGW "Cannot remove \"$SMALI\" from /$PARTITION/$FILE as it is used elsewhere, skipping"
+            return 0
         fi
 
         LOG "- Removing \"$SMALI\" from /$PARTITION/$FILE"
