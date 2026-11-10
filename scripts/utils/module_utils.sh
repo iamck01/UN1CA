@@ -44,10 +44,14 @@ APPLY_PATCH()
     DECODE_APK "$PARTITION" "$FILE" || return 1
 
     LOG "- Applying \"$(grep "^Subject:" "$PATCH" | sed "s/.*PATCH] //")\" to /$PARTITION/$FILE"
-	EVAL "LC_ALL=C patch -p1 \
-	-d \"$APKTOOL_DIR/$PARTITION/${FILE//system\//}\" \
-	-N --forward -l \
-	< \"$PATCH\"" || return 1
+    if LC_ALL=C patch --dry-run -p1 -d "$APKTOOL_DIR/$PARTITION/${FILE//system\//}" -N --forward -l < "$PATCH" > /dev/null 2>&1; then
+        EVAL "LC_ALL=C patch -p1 \
+        -d \"$APKTOOL_DIR/$PARTITION/${FILE//system\//}\" \
+        -N --forward -l \
+        < \"$PATCH\"" || return 1
+    else
+        LOGW "Patch \"$(basename "$PATCH")\" does not apply cleanly to /$PARTITION/$FILE, skipping"
+    fi
     # EVAL "LC_ALL=C git apply --directory=\"$APKTOOL_DIR/$PARTITION/${FILE//system\//}\" --verbose --unsafe-paths \"$PATCH\"" || return 1
 }
 
