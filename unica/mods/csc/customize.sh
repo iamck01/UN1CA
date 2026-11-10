@@ -9,4 +9,4 @@ SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
 # Hide Remote management tile in Settings app
 SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
     "smali_classes5/com/samsung/android/settings/homepage/TopLevelRemoteSupportPreferenceController.smali" "return" \
-    'getAvailabilityStatus()I' '3'
+    'getAvailabilityStatus()I' '3' || LOGW "TopLevelRemoteSupportPreferenceController not present, skipping"

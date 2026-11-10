@@ -73,10 +73,11 @@ SMALI_PATCH()
 
     # Check if provided smali exists
     if [ ! -f "$FILE_PATH/$SMALI" ]; then
+        local SMALI_NAME="${SMALI##*/}"
         local MATCHES
-        MATCHES="$(find "$FILE_PATH" -type f -name "${SMALI##*/}")"
+        MATCHES="$(find "$FILE_PATH" -type f -name "$SMALI_NAME" 2>/dev/null || true)"
 
-        if [ "$(wc -l <<< "$MATCHES")" -eq 1 ] && [ -f "$MATCHES" ]; then
+        if [ "$MATCHES" ] && [ "$(echo "$MATCHES" | wc -l | tr -d ' ')" -eq 1 ] && [ -f "$MATCHES" ]; then
             SMALI="${MATCHES#$FILE_PATH/}"
             LOG "- Found smali at relocated path: \"$SMALI\""
         else
