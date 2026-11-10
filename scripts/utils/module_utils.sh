@@ -138,8 +138,8 @@ GET_GALAXY_STORE_DOWNLOAD_URL()
         fi
     done
 
-    LOGE "No download URI found for app \"$PACKAGE\""
-    return 1
+    LOGW "No download URI found for app \"$PACKAGE\""
+    return 0
 }
 
 # GET_FLOATING_FEATURE_CONFIG "<file>" "<config>"

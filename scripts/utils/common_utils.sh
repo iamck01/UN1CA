@@ -531,7 +531,10 @@ DELETE_FROM_WORK_DIR()
 # Downloads the file from the provided URL and stores it in the desired output path.
 DOWNLOAD_FILE()
 {
-    _CHECK_NON_EMPTY_PARAM "URL" "$1" || return 1
+    if [ -z "$1" ]; then
+        LOGW "DOWNLOAD_FILE: URL parameter is empty, skipping download to $2"
+        return 0
+    fi
     _CHECK_NON_EMPTY_PARAM "OUTPUT" "$2" || return 1
 
     local URL="$1"
