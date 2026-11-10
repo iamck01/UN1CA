@@ -424,13 +424,8 @@ SMALI_PATCH "system" "system/framework/framework.jar" \
     "smali_classes6/com/samsung/android/ProductPackagesRune.smali" "replaceall" \
     "SERVICE_SAMSUNG_BLOCKCHAIN:Z = true" \
     "SERVICE_SAMSUNG_BLOCKCHAIN:Z = false"
-if [[ "$TARGET_SECURITY_CONFIG_ESE_CHIP_VENDOR" == "none" ]] && [[ "$TARGET_SECURITY_CONFIG_ESE_COS_NAME" == "none" ]]; then
-    APPLY_PATCH "system" "system/framework/services.jar" \
-        "$MODPATH/ese+blockchain/services.jar/0001-Nuke-BlockchainTZService.patch"
-else
-    APPLY_PATCH "system" "system/framework/services.jar" \
-        "$MODPATH/blockchain/services.jar/0001-Nuke-BlockchainTZService.patch"
-fi
+APPLY_PATCH "system" "system/framework/services.jar" \
+    "$MODPATH/blockchain/services.jar/0001-Nuke-BlockchainTZService.patch"
 
 # TODO get rid of the following features
 # SEC_PRODUCT_FEATURE_KNOX_SUPPORT_UCS

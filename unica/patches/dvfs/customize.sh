@@ -23,18 +23,15 @@ if [[ "$SOURCE_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME" != "$TARGET_DVFSAPP_CONFIG_D
         _LOG "\"$TARGET_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME\" does not exist in SDHMS app"
     fi
 
-    # com/sec/android/sdhms/performance/PerformanceFeature
-    SMALI_PATCH "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" \
-        "smali/c4/c.smali" "replace" \
-        "<clinit>()V" \
-        "$SOURCE_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME" \
-        "$TARGET_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME"
-    # com/sec/android/sdhms/performance/settings/PerformanceProperties
-    SMALI_PATCH "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" \
-        "smali/k4/e.smali" "replace" \
-        "<init>(Landroid/content/Context;)V" \
-        "$SOURCE_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME" \
-        "$TARGET_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME"
+    # com/sec/android/sdhms/performance/PerformanceFeature & PerformanceProperties
+    while IFS= read -r smali_file; do
+        [ -n "$smali_file" ] || continue
+        smali_rel="${smali_file#$APKTOOL_DIR/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk/}"
+        SMALI_PATCH "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" \
+            "$smali_rel" "replaceall" \
+            "$SOURCE_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME" \
+            "$TARGET_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME" || _LOG "Failed to patch $smali_rel"
+    done < <(grep -R -l "$SOURCE_DVFSAPP_CONFIG_DVFS_POLICY_FILENAME" "$APKTOOL_DIR/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk/smali"* 2>/dev/null || true)
 fi
 
 # SEC_PRODUCT_FEATURE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME
@@ -45,7 +42,7 @@ if [[ "$SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" != "$TARGET_DVFSAPP_CONFIG_S
         "smali/com/android/server/ssrm/Feature.smali" "replace" \
         "<clinit>()V" \
         "$SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" \
-        "$TARGET_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME"
+        "$TARGET_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" || _LOG "Failed to patch ssrm.jar Feature.smali"
 
     DECODE_APK "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk"
 
@@ -64,11 +61,14 @@ if [[ "$SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" != "$TARGET_DVFSAPP_CONFIG_S
     fi
 
     # com/sec/android/sdhms/util/Feature
-    SMALI_PATCH "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" \
-        "smali/o5/w.smali" "replace" \
-        "<clinit>()V" \
-        "$SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" \
-        "$TARGET_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME"
+    while IFS= read -r smali_file; do
+        [ -n "$smali_file" ] || continue
+        smali_rel="${smali_file#$APKTOOL_DIR/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk/}"
+        SMALI_PATCH "system" "system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk" \
+            "$smali_rel" "replaceall" \
+            "$SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" \
+            "$TARGET_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" || _LOG "Failed to patch $smali_rel"
+    done < <(grep -R -l "$SOURCE_DVFSAPP_CONFIG_SSRM_POLICY_FILENAME" "$APKTOOL_DIR/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk/smali"* 2>/dev/null || true)
 fi
 
 if [ -f "$SRC_DIR/target/$TARGET_CODENAME/dvfs/siop_model.xml" ]; then
