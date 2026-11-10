@@ -46,7 +46,10 @@ SMALI_PATCH()
     fi
 
     if [[ "$OPERATION" == "replaceall" ]]; then
-        _CHECK_NON_EMPTY_PARAM "VALUE" "$5" || return 1
+        if [ -z "$5" ]; then
+            LOGW "SMALI_PATCH replaceall: VALUE parameter is empty, skipping"
+            return 0
+        fi
         local VALUE="$5"
         local REPLACEMENT="$6"
     elif [[ "$OPERATION" != "remove" ]]; then
