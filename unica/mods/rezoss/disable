@@ -1,0 +1,1 @@
+Disabled for SM7325 (gts7fewifi): rezoss injects >1.2 GB of SM8550/S26U Hexagon V73 NPU and camera blobs which exceed the 8.32 GB super partition size limit on SM-T733.

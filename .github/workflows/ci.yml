@@ -83,14 +83,29 @@ jobs:
           sed -e "/Automatically/d" -e "s/\"//g" "$OUT_DIR/config.sh" >> "$GITHUB_ENV"
           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
 
-      - name: Cache build tools
-        uses: actions/cache@v4
+      - name: Restore cached build tools
+        id: cache-tools
+        uses: actions/cache/restore@v4
         with:
           path: out/tools
           key: un1ca-tools-${{ runner.os }}-v1
 
       - name: Build dependencies
         run: ./scripts/build_dependencies.sh
+
+      - name: Save cached build tools
+        if: always() && steps.cache-tools.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: out/tools
+          key: un1ca-tools-${{ runner.os }}-v1
+
+      - name: Restore cached target firmware
+        id: cache-fw
+        uses: actions/cache/restore@v4
+        with:
+          path: out/odin/SM-T733_THL
+          key: un1ca-odin-SM-T733-THL-v1
 
       - name: Download stock firmwares
         uses: nick-fields/retry@v4
@@ -99,6 +114,13 @@ jobs:
           max_attempts: 3
           retry_on: error
           command: ./scripts/download_fw.sh
+
+      - name: Save cached target firmware
+        if: always() && steps.cache-fw.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: out/odin/SM-T733_THL
+          key: un1ca-odin-SM-T733-THL-v1
 
       - name: Extract stock firmwares
         run: ./scripts/extract_fw.sh

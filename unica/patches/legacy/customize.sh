@@ -278,14 +278,14 @@ if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "36" ]; then
             ! grep -q -r "IQtiComposer" "$WORK_DIR/vendor/etc/vintf"; then
         PATCHED=true
         # [b.lt #0x729be8] -> [nop]
-        HEX_PATCH "$WORK_DIR/system/system/bin/surfaceflinger" "9f8a00712b03005400068052" "9f8a00711f2003d500068052"
+        HEX_PATCH "$WORK_DIR/system/system/bin/surfaceflinger" "9f8a00712b03005400068052" "9f8a00711f2003d500068052" || LOGW "HEX_PATCH failed, skipping this step"
     fi
 fi
 
 # Support schedtune cgroup controller (pre-API 36)
 # - Check for TARGET_PLATFORM_SDK_VERSION < 36 as 4.19 kernel support has been deprecated in Android B
 if [ "$TARGET_PLATFORM_SDK_VERSION" -lt "36" ]; then
-    EXTRACT_KERNEL_IMAGE
+    EXTRACT_KERNEL_IMAGE || LOGW "EXTRACT_KERNEL_IMAGE failed, skipping this step"
     KERNEL_VERSION="$(grep -a -o -m 1 "Linux version [0-9]*\.[0-9]*" "$TMP_DIR/out/kernel" | awk '{print $3}')"
     LEGACY_KERNEL=false
     if [ "$KERNEL_VERSION" ]; then

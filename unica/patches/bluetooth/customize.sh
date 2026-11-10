@@ -258,7 +258,34 @@ elif xxd -p -c 0 "$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so" | gre
     HEX_PATCH "$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so" \
         "88d6743948050037" "88d674392a000014" > /dev/null
 else
-    ABORT "No known patch available for the supplied libbluetooth_jni.so"
+    if ! python3 - "$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so" << 'PYEOF'
+import struct, sys
+path = sys.argv[1]
+data = bytearray(open(path, "rb").read())
+patched = False
+for off in range(0, len(data) - 8, 4):
+    ins1, ins2 = struct.unpack_from("<II", data, off)
+    # Match ldrb w8, [xN, #imm] ((ins1 & 0xffc0001f) == 0x39400008)
+    # followed by tbnz w8, #0, #imm14 ((ins2 & 0xfff8001f) == 0x37000008)
+    if (ins1 & 0xffc0001f) == 0x39400008 and (ins2 & 0xfff8001f) == 0x37000008:
+        imm14 = (ins2 >> 5) & 0x3fff
+        if imm14 & 0x2000:
+            imm14 -= 0x4000
+        b_ins = 0x14000000 | (imm14 & 0x03ffffff)
+        old_hex = data[off:off+8].hex()
+        struct.pack_into("<I", data, off + 4, b_ins)
+        new_hex = data[off:off+8].hex()
+        print(f"  - Dynamically patched \"{old_hex}\" to \"{new_hex}\" in apex_payload/lib64/libbluetooth_jni.so")
+        patched = True
+        break
+if patched:
+    open(path, "wb").write(data)
+    sys.exit(0)
+sys.exit(1)
+PYEOF
+    then
+        LOGW "No known VaultKeeper patch pattern found in supplied libbluetooth_jni.so; skipping"
+    fi
 fi
 
 BUILD_APK_IN_APEX "$BLUETOOTH_APK_IN_APEX"
