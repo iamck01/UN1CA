@@ -25,7 +25,7 @@ if [ ! -f "$WORK_DIR/system/system/priv-app/ChoiDujour/ChoiDujour.apk" ]; then
     SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
         "smali_classes5/com/samsung/android/settings/softwareupdate/SoftwareUpdateUtils.smali" "return" \
         'isOTAUpgradeAllowed(Landroid/content/Context;)Z' \
-        'false'
+        'false' || LOGW "isOTAUpgradeAllowed not found in SoftwareUpdateUtils, skipping"
 fi
 
 # Always show One UI minor version
@@ -33,14 +33,14 @@ SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
     "smali_classes5/com/samsung/android/settings/deviceinfo/softwareinfo/OneUIVersionPreferenceController.smali" "replace" \
     'isDeviceWithMicroVersion()Z' \
     'move-result p0' \
-    'const/4 p0, 0x1'
+    'const/4 p0, 0x1' || true
 
 # Show real device model number
 SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
     "smali_classes5/com/samsung/android/settings/deviceinfo/aboutphone/ModelNameGetter.smali" "replace" \
     'getModelName()Ljava/lang/String;' \
     'ro.product.model' \
-    'ro.boot.em.model'
+    'ro.boot.em.model' || true
 
 LOG_STEP_IN "- Adding UN1CA Settings"
 
@@ -202,7 +202,7 @@ ADD_UNICA_SETTINGS_SEARCH_INDEX_DATA_PROVIDER()
         'invoke()Ljava/lang/Object;' \
         'new-instance v0, Lcom/android/settingslib/spa/search/SearchIndexableDataConverter;' \
         "    new-instance v0, Lcom/android/settingslib/search/SearchIndexableData;\n\n    const-class v1, L$FRAGMENT;\n\n    sget-object v2, L$FRAGMENT;->SEARCH_INDEX_DATA_PROVIDER:Lcom/android/settings/search/BaseSearchIndexProvider;\n\n    invoke-direct {v0, v1, v2}, Lcom/android/settingslib/search/SearchIndexableData;-><init>(Ljava/lang/Class;Lcom/android/settingslib/search/Indexable\$SearchIndexProvider;)V\n\n    invoke-virtual {p0, v0}, Lcom/android/settingslib/search/SearchIndexableResourcesBase;->addIndex(Lcom/android/settingslib/search/SearchIndexableData;)V\n\n    new-instance v0, Lcom/android/settingslib/spa/search/SearchIndexableDataConverter;" \
-        > /dev/null
+        > /dev/null || true
 }
 
 for f in \
@@ -238,13 +238,13 @@ if ! grep -q '"top_level_unica"' "$TOP_LEVEL_KEYS_COLLECTOR"; then
         '<init>(Landroid/content/Context;)V' \
         '.locals 36' \
         '.locals 37' \
-        > /dev/null
+        > /dev/null || true
     SMALI_PATCH "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" \
         "$TOP_LEVEL_KEYS_COLLECTOR_SMALI" "replace" \
         '<init>(Landroid/content/Context;)V' \
         'filled-new-array/range {v1 .. v35}, [Ljava/lang/String;' \
         '    const-string v36, "top_level_unica"\n\n    filled-new-array/range {v1 .. v36}, [Ljava/lang/String;' \
-        > /dev/null
+        > /dev/null || true
 fi
 
 # Show Vulkan renderer toggle if required

@@ -11,7 +11,7 @@ if [[ "$(GET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_FMRADIO_CONFIG_CHIP_V
     SMALI_PATCH "system" "system/framework/samsungfmradiolib.jar" \
         "smali/com/samsung/frameworks/fmradio/FMRadioImpl.smali" "return" \
         'isRadioNotSupportedInRegion()Z' \
-        'false'
+        'false' || true
 fi
 
 # Show battery regulatory info in Settings
