@@ -14,10 +14,17 @@ SMALI_PATCH "system" "system/framework/framework.jar" \
 
 # shellcheck disable=SC2016
 # Disable RescueParty
-SMALI_PATCH "system" "system/framework/services.jar" \
-    "smali/com/android/server/RescueParty.smali" "return" \
-    '-$$Nest$smisDisabled()Z' \
-    'true'
+if [ -f "$APKTOOL_DIR/system/framework/services.jar/smali/com/android/server/RescueParty.smali" ]; then
+    SMALI_PATCH "system" "system/framework/services.jar" \
+        "smali/com/android/server/RescueParty.smali" "return" \
+        '-$$Nest$smisDisabled()Z' \
+        'true' || LOGW "Disable RescueParty failed, skipping"
+elif [ -f "$APKTOOL_DIR/system/framework/services.jar/smali/com/android/server/SecRescueParty.smali" ]; then
+    SMALI_PATCH "system" "system/framework/services.jar" \
+        "smali/com/android/server/SecRescueParty.smali" "return" \
+        'isDisabled()Z' \
+        'true' || LOGW "Disable SecRescueParty failed, skipping"
+fi
 
 # Better model detection in FreecessController
 SMALI_PATCH "system" "system/framework/services.jar" \
