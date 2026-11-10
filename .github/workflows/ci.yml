@@ -83,6 +83,12 @@ jobs:
           sed -e "/Automatically/d" -e "s/\"//g" "$OUT_DIR/config.sh" >> "$GITHUB_ENV"
           echo "$TOOLS_DIR/bin" >> "$GITHUB_PATH"
 
+      - name: Cache build tools
+        uses: actions/cache@v4
+        with:
+          path: out/tools
+          key: un1ca-tools-${{ runner.os }}-v1
+
       - name: Build dependencies
         run: ./scripts/build_dependencies.sh
 
