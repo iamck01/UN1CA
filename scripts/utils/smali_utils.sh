@@ -76,9 +76,14 @@ SMALI_PATCH()
 
     # Check if provided smali exists
     if [ ! -f "$FILE_PATH/$SMALI" ]; then
-        local SMALI_NAME="${SMALI##*/}"
+        local PKG_PATH="${SMALI#*/}"
         local MATCHES
-        MATCHES="$(find "$FILE_PATH" -type f -name "$SMALI_NAME" 2>/dev/null || true)"
+        # Try matching by full package path across different multidex smali* dirs first
+        MATCHES="$(find "$FILE_PATH" -type f -path "*/$PKG_PATH" 2>/dev/null || true)"
+        if [ -z "$MATCHES" ] || [ "$(echo "$MATCHES" | wc -l | tr -d ' ')" -ne 1 ] || [ ! -f "$MATCHES" ]; then
+            local SMALI_NAME="${SMALI##*/}"
+            MATCHES="$(find "$FILE_PATH" -type f -name "$SMALI_NAME" 2>/dev/null || true)"
+        fi
 
         if [ "$MATCHES" ] && [ "$(echo "$MATCHES" | wc -l | tr -d ' ')" -eq 1 ] && [ -f "$MATCHES" ]; then
             SMALI="${MATCHES#$FILE_PATH/}"
