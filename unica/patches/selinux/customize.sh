@@ -62,23 +62,28 @@ VENDOR_API_LIST="$(find "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping" -type 
 # ]
 
 for e in $ENTRIES; do
-    if grep -q -F "($e)" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping/$CIL_NAME.cil" || \
-         grep -q -F "${e}_${CIL_NAME//./_}" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping/$CIL_NAME.cil"; then
-        # the problematic entry is currently present in system_ext, check if we need to remove it
-        if ! grep -q -F "(type $e)" "$WORK_DIR/vendor/etc/selinux/plat_pub_versioned.cil"; then
-            PATCHED=true
-            # the problematic entry is not supported by the target device
-            LOG "- \"$e\" SELinux entry not supported. Removing"
-            sed -i "/($e)/d" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping/$CIL_NAME.cil"
-            for a in $VENDOR_API_LIST; do
-                sed -i "/${e}_${a}/d" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping/$CIL_NAME.cil"
-            done
-            if grep -q "genfscon.*$e" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/system_ext_sepolicy.cil"; then
-                sed -i "/genfscon.*$e/d" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/system_ext_sepolicy.cil"
+    for dir in "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/mapping" "$WORK_DIR/system/system/etc/selinux/mapping"; do
+        cil_file="$dir/$CIL_NAME.cil"
+        if [ -f "$cil_file" ]; then
+            if grep -q -F "($e)" "$cil_file" || \
+                 grep -q -F "${e}_${CIL_NAME//./_}" "$cil_file"; then
+                if ! grep -q -F "(type $e)" "$WORK_DIR/vendor/etc/selinux/plat_pub_versioned.cil"; then
+                    PATCHED=true
+                    LOG "- \"$e\" SELinux entry not supported. Removing from $(basename "$dir")"
+                    sed -i "/($e)/d" "$cil_file"
+                    for a in $VENDOR_API_LIST; do
+                        sed -i "/${e}_${a}/d" "$cil_file"
+                    done
+                fi
             fi
-            if grep -q "genfscon.*$e" "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"; then
-                sed -i "/genfscon.*$e/d" "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"
-            fi
+        fi
+    done
+    if ! grep -q -F "(type $e)" "$WORK_DIR/vendor/etc/selinux/plat_pub_versioned.cil"; then
+        if [ -f "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/system_ext_sepolicy.cil" ] && grep -q "genfscon.*$e" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/system_ext_sepolicy.cil"; then
+            sed -i "/genfscon.*$e/d" "$WORK_DIR/$(GET_SYSTEM_EXT)/etc/selinux/system_ext_sepolicy.cil"
+        fi
+        if [ -f "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil" ] && grep -q "genfscon.*$e" "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"; then
+            sed -i "/genfscon.*$e/d" "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"
         fi
     fi
 done

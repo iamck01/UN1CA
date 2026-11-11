@@ -146,6 +146,69 @@ COPY_TARGET_KERNEL()
         [ -d "$WORK_DIR/kernel" ] && rm -rf "$WORK_DIR/kernel"
     fi
 }
+
+COPY_TARGET_COMPAT_MAPPING()
+{
+    LOG_STEP_IN "- Copying target SELinux compatibility mappings"
+    local TARGET_SYS="$FW_DIR/$TARGET_FIRMWARE_PATH/system"
+    [ -d "$TARGET_SYS/system" ] && TARGET_SYS="$TARGET_SYS/system"
+    local WORK_SYS="$WORK_DIR/system"
+    [ -d "$WORK_SYS/system" ] && WORK_SYS="$WORK_SYS/system"
+
+    if [ -d "$TARGET_SYS/etc/selinux/mapping" ]; then
+        mkdir -p "$WORK_SYS/etc/selinux/mapping"
+        for cil in "$TARGET_SYS/etc/selinux/mapping/"*.cil; do
+            [ -f "$cil" ] || continue
+            local bname
+            bname="$(basename "$cil")"
+            if [ ! -f "$WORK_SYS/etc/selinux/mapping/$bname" ]; then
+                LOG "- Adding missing $bname from target firmware"
+                cp -a "$cil" "$WORK_SYS/etc/selinux/mapping/$bname"
+                SET_METADATA "system" "system/etc/selinux/mapping/$bname" 0 0 644 "u:object_r:system_file:s0"
+            fi
+        done
+    fi
+
+    local TARGET_EXT="$FW_DIR/$TARGET_FIRMWARE_PATH/system_ext"
+    [ ! -d "$TARGET_EXT" ] && TARGET_EXT="$TARGET_SYS/system_ext"
+    local WORK_EXT="$WORK_DIR/system_ext"
+    [ ! -d "$WORK_EXT" ] && WORK_EXT="$WORK_SYS/system_ext"
+
+    if [ -d "$TARGET_EXT/etc/selinux/mapping" ]; then
+        mkdir -p "$WORK_EXT/etc/selinux/mapping"
+        for cil in "$TARGET_EXT/etc/selinux/mapping/"*.cil; do
+            [ -f "$cil" ] || continue
+            local bname
+            bname="$(basename "$cil")"
+            if [ ! -f "$WORK_EXT/etc/selinux/mapping/$bname" ]; then
+                LOG "- Adding missing system_ext $bname from target firmware"
+                cp -a "$cil" "$WORK_EXT/etc/selinux/mapping/$bname"
+                if [ -d "$WORK_DIR/system_ext" ]; then
+                    SET_METADATA "system_ext" "etc/selinux/mapping/$bname" 0 0 644 "u:object_r:system_file:s0"
+                else
+                    SET_METADATA "system" "system/system_ext/etc/selinux/mapping/$bname" 0 0 644 "u:object_r:system_file:s0"
+                fi
+            fi
+        done
+    fi
+
+    local TARGET_PRD="$FW_DIR/$TARGET_FIRMWARE_PATH/product"
+    local WORK_PRD="$WORK_DIR/product"
+    if [ -d "$TARGET_PRD/etc/selinux/mapping" ]; then
+        mkdir -p "$WORK_PRD/etc/selinux/mapping"
+        for cil in "$TARGET_PRD/etc/selinux/mapping/"*.cil; do
+            [ -f "$cil" ] || continue
+            local bname
+            bname="$(basename "$cil")"
+            if [ ! -f "$WORK_PRD/etc/selinux/mapping/$bname" ]; then
+                LOG "- Adding missing product $bname from target firmware"
+                cp -a "$cil" "$WORK_PRD/etc/selinux/mapping/$bname"
+                SET_METADATA "product" "etc/selinux/mapping/$bname" 0 0 644 "u:object_r:system_file:s0"
+            fi
+        done
+    fi
+    LOG_STEP_OUT
+}
 # ]
 
 mkdir -p "$WORK_DIR"
@@ -153,5 +216,6 @@ mkdir -p "$WORK_DIR/configs"
 COPY_SOURCE_FIRMWARE
 COPY_TARGET_FIRMWARE
 COPY_TARGET_KERNEL
+COPY_TARGET_COMPAT_MAPPING
 
 exit 0
